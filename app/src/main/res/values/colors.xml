@@ -6,6 +6,9 @@
 
     <color name="white">#FFFFFF</color>
     <color name="light_gray">#DDDDDD</color>
+    <color name="warm_grey">#9b9b9b</color>
 
+    <color name="scarlet">#d0021b</color>
     <color name="background_theme_dark">#2f2725</color>
+
 </resources>

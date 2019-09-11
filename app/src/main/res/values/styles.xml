@@ -29,4 +29,17 @@
         <item name="android:textColor">@color/light_gray</item>
     </style>
 
+    <style name="TextInputLayoutStyle" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <item name="colorAccent">@color/colorPrimaryDark</item>
+        <item name="boxBackgroundColor">@color/white</item>
+        <item name="boxStrokeColor">@drawable/text_input_box_stroke</item>
+        <item name="hintEnabled">false</item>
+    </style>
+
+    <style name="TextInputEditTextStyle">
+        <item name="android:textColor">@color/colorPrimaryDark</item>
+        <item name="android:textColorHint">@color/warm_grey</item>
+        <item name="android:singleLine">true</item>
+    </style>
+
 </resources>

@@ -1,5 +1,6 @@
-package com.kuanhsien.app.sample.direct_pay_with_tappay_sample
+package com.kuanhsien.app.sample.direct_pay_with_tappay_sample.util
 
+import com.kuanhsien.app.sample.direct_pay_with_tappay_sample.AppConstants
 import org.json.JSONException
 import org.json.JSONObject
 
