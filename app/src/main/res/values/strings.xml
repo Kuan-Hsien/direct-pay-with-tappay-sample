@@ -14,4 +14,15 @@
     <string name="ui_tip_invalid_expiration_date">Invalid Expiration Date</string>
     <string name="ui_tip_invalid_ccv">Invalid CCV</string>
 
+    <!-- Customize input credit card view -->
+    <string name="label_card_number">Card Number</string>
+    <string name="label_expiration_date">Expiration Date</string>
+    <string name="label_cvc">Security Code</string>
+    <string name="hint_card_number">Enter your card number</string>
+    <string name="hint_expiry_date">MM/YY</string>
+
+    <string name="hint_invalid_card_number">Enter a valid credit card number.</string>
+    <string name="hint_invalid_expiration_date">Invalid expiration date.</string>
+    <string name="hint_invalid_cvc">Invalid Security Code.</string>
+
 </resources>
