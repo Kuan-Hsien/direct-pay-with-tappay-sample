@@ -30,6 +30,7 @@ dependencies {
     implementation "androidx.core:core-ktx:$androidxCorektxVersion"
     implementation "androidx.constraintlayout:constraintlayout:$androidxConstraintlayoutVersion"
     implementation "com.google.android.material:material:$androidMaterialVersion"
+    implementation "androidx.lifecycle:lifecycle-extensions:$lifecycleVersion"
 
     // Tap pay
     implementation(name: 'tpdirect', ext: 'aar')

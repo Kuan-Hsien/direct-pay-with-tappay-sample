@@ -12,36 +12,21 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
-import com.kuanhsien.app.sample.direct_pay_with_tappay_sample.util.*
+import androidx.lifecycle.ViewModelProviders
+import com.kuanhsien.app.sample.direct_pay_with_tappay_sample.util.ApiUtil
+import com.kuanhsien.app.sample.direct_pay_with_tappay_sample.util.EventObserver
+import com.kuanhsien.app.sample.direct_pay_with_tappay_sample.util.afterTextChanged
 import kotlinx.android.synthetic.main.activity_main.*
-import tech.cherri.tpdirect.api.TPDCard
 import tech.cherri.tpdirect.api.TPDServerType
 import tech.cherri.tpdirect.api.TPDSetup
-import tech.cherri.tpdirect.callback.TPDCardTokenSuccessCallback
-import tech.cherri.tpdirect.callback.TPDTokenFailureCallback
 import tech.cherri.tpdirect.model.TPDStatus
-import tech.cherri.tpdirect.model.Validation.*
 
 class MainActivity : AppCompatActivity(), View.OnClickListener {
 
     private val tag = this.javaClass.simpleName
 
-    private var tpdCard: TPDCard? = null
-    private var cardNumber = emptyString()
-    private var expirationMonth = emptyString()
-    private var expirationYear = emptyString()
-    private var cvc = emptyString()
-
-    val isCardNumberValidLiveData = MutableLiveData<Event<Boolean>>()
-    val isExpiryDateValidLiveData = MutableLiveData<Event<Boolean>>()
-    val isCvcValidLiveData = MutableLiveData<Event<Boolean>>()
-    val isSaveButtonEnabledLiveData by lazy {
-        MutableLiveData<Boolean>().apply {
-            value = false
-        }
-    }
+    private lateinit var viewModel: MainViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,6 +35,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
 
         Log.d(tag, "SDK version is " + TPDSetup.getVersion())
 
+        viewModel = ViewModelProviders.of(this).get(MainViewModel::class.java)
         observeData()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -127,124 +113,56 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             }
             btn_pay.isEnabled = tpdStatus.isCanGetPrime
         }
-
-        // Method 1:
-        //  use default tpdForm for user to input payment card info and verify
-        tpdCard = TPDCard.setup(tpdcard_input_form)
-            .onSuccessCallback(getTPDCardTokenSuccessCallback())
-            .onFailureCallback(getTPDTokenFailureCallback())
-    }
-
-    fun setCardNumber(numberString: String) {
-        cardNumber = numberString.replace(" ", "")
-    }
-
-    fun setExpiryDate(dateString: String) {
-
-        val expDates = dateString.split("/")
-
-        expirationMonth = expDates.getOrNull(0)?.toString() ?: emptyString()
-        expirationYear = expDates.getOrNull(1)?.toString() ?: emptyString()
-    }
-
-    fun setCVC(cvcString: String) {
-        cvc = cvcString
-    }
-
-    fun validateCardNumber(): Boolean {
-
-        Log.d(tag, "validateCardNumber, number: $cardNumber")
-        val isValid = isCardNumberValid(StringBuffer(cardNumber))
-
-        if (isValid) {
-            isCardNumberValidLiveData.value = Event(true)
-        } else {
-            isCardNumberValidLiveData.value = Event(false)
-        }
-
-        checkButtonState()
-
-        return isValid
-    }
-
-    fun validateExpiryDate(): Boolean {
-
-        Log.d(tag, "validateExpiryDate, expireMonth: $expirationMonth, expireYear: $expirationYear")
-        val isValid = isDueDateValid(StringBuffer(expirationYear), StringBuffer(expirationMonth))
-
-        if (isValid) {
-            isExpiryDateValidLiveData.value = Event(true)
-        } else {
-            isExpiryDateValidLiveData.value = Event(false)
-        }
-
-        checkButtonState()
-
-        return isValid
-    }
-
-    fun validateCvc(): Boolean {
-
-        Log.d(tag, "validateCvc, cvc: $cvc")
-        val isValid = isCCVValid(StringBuffer(cvc))
-
-        if (isValid) {
-            isCvcValidLiveData.value = Event(true)
-        } else {
-            isCvcValidLiveData.value = Event(false)
-        }
-
-        checkButtonState()
-
-        return isValid
-    }
-
-    private fun checkButtonState() {
-
-        isSaveButtonEnabledLiveData.value =
-            (isCardNumberValidLiveData.value?.peekContent() == true)
-                    && (isExpiryDateValidLiveData.value?.peekContent() == true)
-                    && (isCvcValidLiveData.value?.peekContent() == true)
     }
 
     private fun observeData() {
 
-        isCardNumberValidLiveData.observe(this, EventObserver {
-            if (it) {
-                tv_card_number.setTextColor(ContextCompat.getColor(this, R.color.colorPrimaryDark))
-                text_input_layout_card_number.error = null
-            } else {
-                tv_card_number.setTextColor(ContextCompat.getColor(this, R.color.scarlet))
-                text_input_layout_card_number.error =
-                    getString(R.string.hint_invalid_card_number)
-            }
-        })
+        with(viewModel) {
 
-        isExpiryDateValidLiveData.observe(this, EventObserver {
-            if (it) {
-                tv_expiration_date.setTextColor(ContextCompat.getColor(this, R.color.colorPrimaryDark))
-                text_input_layout_expiration_date.error = null
-            } else {
-                tv_expiration_date.setTextColor(ContextCompat.getColor(this, R.color.scarlet))
-                text_input_layout_expiration_date.error =
-                    getString(R.string.hint_invalid_expiration_date)
-            }
-        })
+            isCardNumberValidLiveData.observe(this@MainActivity, EventObserver {
+                if (it) {
+                    tv_card_number.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.colorPrimaryDark))
+                    text_input_layout_card_number.error = null
+                } else {
+                    tv_card_number.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.scarlet))
+                    text_input_layout_card_number.error =
+                        getString(R.string.hint_invalid_card_number)
+                }
+            })
 
-        isCvcValidLiveData.observe(this, EventObserver {
-            if (it) {
-                tv_cvc.setTextColor(ContextCompat.getColor(this, R.color.colorPrimaryDark))
-                text_input_layout_cvc.error = null
-            } else {
-                tv_cvc.setTextColor(ContextCompat.getColor(this, R.color.scarlet))
-                text_input_layout_cvc.error = getString(R.string.hint_invalid_cvc)
-            }
-        })
+            isExpiryDateValidLiveData.observe(this@MainActivity, EventObserver {
+                if (it) {
+                    tv_expiration_date.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.colorPrimaryDark))
+                    text_input_layout_expiration_date.error = null
+                } else {
+                    tv_expiration_date.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.scarlet))
+                    text_input_layout_expiration_date.error =
+                        getString(R.string.hint_invalid_expiration_date)
+                }
+            })
 
-        isSaveButtonEnabledLiveData.observe(this, Observer {
-            btn_pay_custom.isEnabled = it
-        })
+            isCvcValidLiveData.observe(this@MainActivity, EventObserver {
+                if (it) {
+                    tv_cvc.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.colorPrimaryDark))
+                    text_input_layout_cvc.error = null
+                } else {
+                    tv_cvc.setTextColor(ContextCompat.getColor(this@MainActivity, R.color.scarlet))
+                    text_input_layout_cvc.error = getString(R.string.hint_invalid_cvc)
+                }
+            })
 
+            isSaveButtonEnabledLiveData.observe(this@MainActivity, Observer {
+                btn_pay_custom.isEnabled = it
+            })
+
+            isCreateTokenSuccessLiveData.observe(this@MainActivity, EventObserver {
+                if (it) {
+                    showCreateTokenSuccess(token)
+                } else {
+                    showCreateTokenFail()
+                }
+            })
+        }
     }
 
     private fun initCustomCardInputViews() {
@@ -280,21 +198,20 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                 }
 
                 setSelection(text.length)
-                setCardNumber(text.toString())
+                viewModel.setCardNumber(text.toString())
 
                 // Add blank every 4 digit
                 if (newText.length >= 19) {
-                    validateCardNumber()
+                    viewModel.validateCardNumber()
                 }
             }
 
             setOnFocusChangeListener { _, hasFocus ->
                 if (!hasFocus) {
-                    validateCardNumber()
+                    viewModel.validateCardNumber()
                 }
             }
         }
-
 
         edittext_expiration_date.apply {
 
@@ -332,17 +249,16 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                 }
 
                 setSelection(text.length)
-                setExpiryDate(text.toString())
+                viewModel.setExpiryDate(text.toString())
 
                 if (newText.length >= 5) {
-                    validateExpiryDate()
+                    viewModel.validateExpiryDate()
                 }
-
             }
 
             setOnFocusChangeListener { _, hasFocus ->
                 if (!hasFocus) {
-                    validateExpiryDate()
+                    viewModel.validateExpiryDate()
                 }
             }
         }
@@ -358,19 +274,18 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                 }
 
                 setSelection(text.length)
-                setCVC(text.toString())
+                viewModel.setCVC(text.toString())
 
                 if (newText.length >= 3) {
-                    validateCvc()
+                    viewModel.validateCvc()
                 }
             }
 
             setOnFocusChangeListener { _, hasFocus ->
                 if (!hasFocus) {
-                    validateCvc()
+                    viewModel.validateCvc()
                 }
             }
-
         }
 
     }
@@ -386,87 +301,38 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
             // 4. Calling API for obtaining prime.
             R.id.btn_pay -> {
                 Log.d(tag, "onClick btn_pay")
-
-                if (tpdCard != null) {
-                    // Method 1:
-                    //  use tpdCard.getPrime() to use default tpdForm and get prime
-                    (tpdCard as TPDCard).getPrime()
-
-                } else {
-                    Log.d(tag, "tpdCard is null")
-                }
+                viewModel.createCardPrime(tpdcard_input_form)
             }
 
             // 4. Calling API for obtaining prime.
             R.id.btn_pay_custom -> {
-
-                // TODO check permission if needed
-                // Method 2:
-                //  use customized layout for user to input payment card info,
-                //  and use TPDCard constructor to input those information
-                //  it won't check the card information in this situation, just enter onFailure block and show
-                //  "Create Token Failed 88004: Parameter Wrong Format"
-                //  Reference: https://docs.tappaysdk.com/tutorial/zh/error.html#android-sdk-error-code
-
-                val cardNum = StringBuffer(cardNumber)
-                val dueMonth = StringBuffer(expirationMonth)
-                val dueYear = StringBuffer(expirationYear)
-                val cvc = StringBuffer(cvc)
-
-                tpdCard = TPDCard(
-                    tpdcard_input_form.context,
-                    cardNum,
-                    dueMonth,
-                    dueYear,
-                    cvc
-                )
-                    .onSuccessCallback(getTPDCardTokenSuccessCallback())
-                    .onFailureCallback(getTPDTokenFailureCallback())
-
                 Log.d(tag, "onClick btn_pay_custom")
 
-                if (tpdCard != null) {
-                    // Method 2:
-                    //  use tpdCard?.createToken() to use customized input layout
-                    tpdCard?.createToken("UNKNOWN")
-                } else {
-                    Log.d(tag, "tpdCard is null")
-                }
+                // TODO check permission if needed
+                viewModel.createCardToken(this)
             }
         }
     }
 
-    fun getTPDCardTokenSuccessCallback() =
-        TPDCardTokenSuccessCallback { token, tpdCardInfo, cardIdentifier ->
-            val cardLastFour = tpdCardInfo.lastFour
+    private fun showCreateTokenSuccess(token: String) {
 
-            Log.d(tag, "[TPDirect createToken] token:  $token")
-            Log.d(tag, "[TPDirect createToken] cardLastFour:  $cardLastFour")
-            Log.d(tag, "[TPDirect createToken] cardIdentifier:  $cardIdentifier")
+        Toast.makeText(this@MainActivity, "Create Token Success", Toast.LENGTH_SHORT).show()
 
-            Toast.makeText(this@MainActivity, "Create Token Success", Toast.LENGTH_SHORT).show()
+        val resultStr = ("Your prime is $token\n\n" +
+                "Use below cURL to proceed the payment : \n" +
+                ApiUtil.generatePayByPrimeCURLForSandBox(
+                    token,
+                    getString(R.string.global_test_partnerKey),
+                    getString(R.string.global_test_merchant_id)
+                ))
 
-            val resultStr = ("Your prime is $token\n\n" +
-                    "Use below cURL to proceed the payment : \n" +
-                    ApiUtil.generatePayByPrimeCURLForSandBox(
-                        token,
-                        getString(R.string.global_test_partnerKey),
-                        getString(R.string.global_test_merchant_id)
-                    ))
+        tv_payment_status.text = resultStr
+        Log.d(tag, resultStr)
+    }
 
-            tv_payment_status.text = resultStr
-            Log.d(tag, resultStr)
-        }
-
-    fun getTPDTokenFailureCallback() =
-        TPDTokenFailureCallback { status, reportMsg ->
-            Log.d(tag, "[TPDirect createToken] failure: $status$reportMsg")
-            Toast.makeText(
-                this@MainActivity,
-                "Create Token Failed\n$status: $reportMsg",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
+    private fun showCreateTokenFail() {
+        Toast.makeText(this@MainActivity, "Create Token Failed", Toast.LENGTH_SHORT).show()
+    }
 
     companion object {
         private const val REQUEST_READ_PHONE_STATE = 101
